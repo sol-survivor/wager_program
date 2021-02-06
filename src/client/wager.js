@@ -114,18 +114,19 @@ function WagerClient(config){
 	return this;
 }
 
-WagerClient.prototype.closeContract = function(contractAccount,returnIx = false){
+WagerClient.prototype.closeContract = function(outcome,returnIx = false){
 	return new Promise(async(resolve,reject)=>{
+		let contractAccountPublicKey = this.contractAccount.publicKey ? this.contractAccount.publicKey : this.contractAccount;		
 		console.log("Closing Contract");
 		//Accounts [ContractAccount,SystemClock,OracleAccount]		
 		let closeIx = new TransactionInstruction({
 			keys: [
-				{pubkey: contractAccount, isSigner: false, isWritable:true},
+				{pubkey: contractAccountPublicKey, isSigner: false, isWritable:true},
 				{pubkey: systemClock, isSigner:false, isWritable:false},	
 				{pubkey: this.oracleAccount.publicKey, isSigner:true, isWritable:true},	
 			],
 			programId:this.programId,
-			data: Buffer.concat ([ Buffer.from([2]),Buffer.from([1]) ])
+			data: Buffer.concat ([ Buffer.from([2]),Buffer.from([outcome]) ])
 		});
 		if(!returnIx){
 			try{

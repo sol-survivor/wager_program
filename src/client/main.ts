@@ -35,7 +35,7 @@ async function main() {
 	let waitTime = Math.ceil(wc.endTime - (new Date().getTime()/1000 - startTime) + 1);
 	console.log("waiting ",waitTime,"s to close contract");
 	await wc.sleep( waitTime  );
-	await wc.closeContract(contractAccount.publicKey);
+	await wc.closeContract(1);
 	
 	//view contract output
 	await wc.viewContractData();
