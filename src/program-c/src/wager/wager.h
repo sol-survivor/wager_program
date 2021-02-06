@@ -24,6 +24,13 @@ typedef struct {
 	uint8_t outcome; /** outcome result [0,1]  185*/	
 } Contract;
 
+typedef struct {
+    SolPubkey mint;
+    SolPubkey owner;
+    uint64_t amount;
+} TokenAccount;
+
+
 //helpers
 uint64_t LEbytesto64(uint8_t *arr){
 	uint64_t number64 = (uint64_t)(
@@ -378,7 +385,8 @@ bool BurnTokens(SolParameters *params){
 	SolAccountInfo *Authority = &params->ka[5];
 	SolAccountInfo *BurnAccount = &params->ka[7];				
 	SolAccountInfo *TokenProgram = &params->ka[6];
-	Contract *contract = (Contract *)Account->data;	
+	Contract *contract = (Contract *)Account->data;
+	TokenAccount *burnAccount = (TokenAccount *)BurnAccount->data;	
 	bool txComplete = false;
 	uint8_t seed1[] = { params->data[1] };
 	const SolSignerSeed seeds1[] = { {seed1, SOL_ARRAY_SIZE(seed1)} };	
@@ -388,7 +396,8 @@ bool BurnTokens(SolParameters *params){
           {Mint->key, true, false},
           {Authority->key, false, true},
     };
-    uint8_t burnData[] = { 8,params->data[2], params->data[3], params->data[4],params->data[5], params->data[6], params->data[7], params->data[8], params->data[9] };
+    uint8_t burnData[] = { 8,0,0,0,0,0,0,0,0 };
+	BE64toBytes(1,burnData,burnAccount->amount); 
 	const SolInstruction burnPxInstruction = {
 		TokenProgram->key,
 		burnArguments, SOL_ARRAY_SIZE(burnArguments),
@@ -482,8 +491,10 @@ bool Transfer2User(SolParameters *params){
 	SolAccountInfo *wagerTokenUserAccount = &params->ka[4];	
 	SolAccountInfo *ProgramAuthority = &params->ka[5];
 	SolAccountInfo *TokenProgram = &params->ka[6];	
+	SolAccountInfo *UserMintTokenAccount = &params->ka[7];	
 	Contract *contract = (Contract *)Account->data;	
 	MintBody *mint = (MintBody *)TokenMint->data;	
+	TokenAccount *userMintTokenAccount = (TokenAccount *)UserMintTokenAccount->data;		
 	bool txComplete = false;
 	uint8_t seed1[] = { params->data[1] };
 	const SolSignerSeed seeds1[] = { {seed1, SOL_ARRAY_SIZE(seed1)} };	
@@ -492,12 +503,10 @@ bool Transfer2User(SolParameters *params){
 		  {wagerTokenProgramAccount->key,true,false},		
           {wagerTokenUserAccount->key, true, false},
           {ProgramAuthority->key, false, true},
-    };    
-
-    uint8_t burnAmount[] = { params->data[2], params->data[3], params->data[4],params->data[5], params->data[6], params->data[7], params->data[8], params->data[9] };
+    };        
     uint8_t potAmount[] = { wagerTokenProgramAccount->data[64], wagerTokenProgramAccount->data[65], wagerTokenProgramAccount->data[66],wagerTokenProgramAccount->data[67], wagerTokenProgramAccount->data[68], wagerTokenProgramAccount->data[69], wagerTokenProgramAccount->data[70], wagerTokenProgramAccount->data[71] };
     uint8_t mintAmount[] = { mint->supply[0], mint->supply[1], mint->supply[2],mint->supply[3], mint->supply[4], mint->supply[5], mint->supply[6], mint->supply[7] };
-    uint64_t burnAmount64 = LEbytesto64(burnAmount);
+    uint64_t burnAmount64 =	userMintTokenAccount->amount;
     uint64_t potAmount64 = LEbytesto64(potAmount);
     uint64_t mintAmount64 = LEbytesto64(mintAmount);
     unsigned long winning;
@@ -609,7 +618,7 @@ uint64_t setOutcome(SolParameters *params){
 
 //Redeem
 //Accounts [ContractAccount,SystemClock,TokenMint1 || TokenMint2,PotTokenAccount,UserTokenAccount,ProgramAuthority,UserMintTokenAccount,TokenProgram]
-//Data {uint8_t 3,uint8_t seed, uint64_t burnAmount}
+//Data {uint8_t 3,uint8_t seed}
 uint64_t redeem(SolParameters *params){
 	if( !isOwner(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }
 	if( !ValidClock(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }	
