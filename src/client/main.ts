@@ -41,7 +41,7 @@ async function main() {
 	await wc.viewContractData();
 	
 	//redeem
-	await wc.redeemContract(contractAccount.publicKey,wc.mintAccounts[0].publicKey,payerWagerTokenAccount,contractWagerTokenAccount,wagerTokenMint,Amount);
+	await wc.redeemContract(1);
 }
 
 main().then(
