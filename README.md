@@ -1,8 +1,12 @@
 ***************
-
-THIS SOFTWARE HAS NOT BEEN AUDITED,DOES NOT COME WITH A WARRANTY AND IS PROVIDED AS IS
-
+THIS SOFTWARE IS PROVIDED AS IS
+THIS SOFTWARE HAS NOT BEEN AUDITED
+THIS SOFTWARE DOES NOT COME WITH A WARRANTY 
 ***************
+
+**
+If using this in production with large sums at risk ensure you DO NOT RESUSE PROGRAMS, but instead deploy new programs as needed.
+**
 
 
 # Wager Program
