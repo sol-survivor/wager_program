@@ -15,12 +15,8 @@ async function main() {
 	await establishPayer();
 
 	// Load the program if not already loaded
-	let firstRun = await loadProgram();
-	if(firstRun){ 
-		console.log("first run waiting...");
-		let wait =async()=>{ return new Promise((resolve,reject)=>{setTimeout(resolve,10000)}) }; 
-		await wait();
-	}
+	await loadProgram();
+
 	// Create a wager client
 	let config = await getConfig();
 	let wc = new WagerClient(config);

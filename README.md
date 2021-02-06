@@ -151,6 +151,7 @@ await wc.viewContractData();
 - Normalize variable names
 - Stream line wager client function calls
 - Add tests 
+- Improve readme
 
 
 
