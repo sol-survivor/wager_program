@@ -111,7 +111,7 @@ let config = {
 	minimumBet:1,
 	oracleAccount:payerAccount,
 	override:0,
-	potMint, // SRM,FTT,etc Mint Address
+	potMint, // SRM,BTC,ETH,FTT,etc Mint Address
 	programId,
 }
 let wc = new WagerClient(config);
@@ -137,7 +137,7 @@ await wc.mintPx(1,Amount);
 #### Setting the outcome of a contract
 
 ```
-await wc.closeContract(oracleAccount.publicKey);
+await wc.closeContract(1);
 ```
 
 #### Redeeming tokens from the Pot when the winner is from position 1
