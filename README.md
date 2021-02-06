@@ -130,7 +130,7 @@ let [ contractAccount ,mintAccount1,mintAccount2,contractWagerTokenAccount,wager
 
 ```
 let Amount = 8;
-await wc.mintPx(contractAccount.publicKey,mintAccount1.publicKey,payerWagerTokenAccount,contractWagerTokenAccount,wagerTokenMint,Amount);
+await wc.mintPx(1,Amount);
 
 ```
 
