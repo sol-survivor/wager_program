@@ -30,6 +30,14 @@ function get64BitTime(byteArray){
 	return time;
 }
 
+function get64Value(array){
+	let hex = "0x"+array.toString("hex");
+	let big = BigInt(hex);
+	big = big.toString();
+	big = Number(big);
+	return big;
+}
+
 const findAssociatedTokenAccountPublicKey = async (ownerPublicKey,tokenMintPublicKey) =>(
     await PublicKey.findProgramAddress(
       [
@@ -89,7 +97,7 @@ function createIx( funderPubkey,associatedTokenAccountPublicKey,ownerPublicKey,t
 function WagerClient(config){
 	this.connection = config.connection;
 	//Contract end time (from unix epoch)
-	this.cachedAccount = config.cachedAccount;
+	this.contractAccount = config.cachedAccount;
 	this.contractPotAccount = null;
 	this.endTime = config.endTime;
 	this.fee = config.fee;
@@ -219,7 +227,7 @@ WagerClient.prototype.getFeePayerWagerTokenAccount = function(returnIx = false){
 		}
 		else{
 			exists = true;
-			console.log("Existing Token Account for Fee Payer",associatedAccount.toBase58(),associatedAccount);
+			console.log("Existing Token Account for Fee Payer",associatedAccount.toBase58());
 		}
 		return resolve ( [ associatedAccount,exists,creationIx ] );
 	})
@@ -281,9 +289,6 @@ WagerClient.prototype.mintPx= function(contractAccountPublicKey,mintAccountxPubl
 			mintIx.push(contractDelegateInstruction);
 		}
 		//Accounts [ContractAccount,SystemClock,TokenMint1 || TokenMint2,PotTokenAccount,UserTokenAccount,ProgramAuthority,TokenProgram,feeAccount]
-		/*if(window){
-			wagerAmount64 = wagerAmount64.reverse();
-		}*/
 		var instruction = new TransactionInstruction({
 			keys: [
 				{pubkey: contractAccountPublicKey, isSigner: false, isWritable:true},
@@ -319,13 +324,18 @@ WagerClient.prototype.mintPx= function(contractAccountPublicKey,mintAccountxPubl
 	});
 }
 
-WagerClient.prototype.redeemContract = function (contractAccount,mintAccountxPublicKey,payerWagerTokenAccount,contractWagerTokenAccount,wagerMint,amount,returnIx = false){
+WagerClient.prototype.redeemContract = function (position,returnIx = false){
 	return new Promise(async(resolve,reject)=>{
+		let contractAccount = this.contractAccount.publicKey ? this.contractAccount.publicKey : this.contractAccount;
+		let mintAccountxPublicKey = this.mintAccounts[position-1].publicKey ? this.mintAccounts[position-1].publicKey : this.mintAccounts[position-1];
+		let [ payerWagerTokenAccount ] = await this.getFeePayerWagerTokenAccount();
+		let contractWagerTokenAccount = this.contractPotAccount.publicKey ? this.contractPotAccount.publicKey : this.contractPotAccount;
+		let wagerMint = this.potMint.publicKey ? this.potMint.publicKey : this.potMint;
 		let associatedTokenAccountPublicKey = await findAssociatedTokenAccountPublicKey(this.feePayer.publicKey,mintAccountxPublicKey);		
 		let [contractAuthority,seed] = await getContractAuth(false,this.programId);	
-		let redeemAmount = amount * Math.pow(10,this.decimals);		
-		let redeemAmountBuffer = new Numberu64( amount * Math.pow(10,this.decimals) ).toBuffer();	
 		let redeemIxs = [];
+		let userMintTokenAccount = await this.connection.getAccountInfo(associatedTokenAccountPublicKey);
+		let redeemAmount = get64Value(userMintTokenAccount.data.slice(64,72).reverse());
 		//delegateAmount to Burn from the minted tokens
 		let contractDelegateInstruction = Token.createApproveInstruction(
 			tokenProgram,
@@ -350,7 +360,7 @@ WagerClient.prototype.redeemContract = function (contractAccount,mintAccountxPub
 			  [],
 			  redeemAmount
 			);
-			console.log("Approved Contract to burn "+amount+" tokens",approveTx);
+			console.log("Approved Contract to burn "+redeemAmount+" tokens",approveTx);
 		}
 		var instruction = new TransactionInstruction({
 			keys: [
@@ -364,7 +374,7 @@ WagerClient.prototype.redeemContract = function (contractAccount,mintAccountxPub
 				{pubkey: associatedTokenAccountPublicKey,isSigner:false,isWritable:true},
 			],
 			programId:this.programId,
-			data: Buffer.concat ([Buffer.from([3]),seed, redeemAmountBuffer ])
+			data: Buffer.concat ([Buffer.from([3]),seed])
 		});
 		redeemIxs.push(instruction);
 		if(!returnIx){
@@ -376,7 +386,7 @@ WagerClient.prototype.redeemContract = function (contractAccount,mintAccountxPub
 				{
 					skipPreflight:true,
 				  commitment: 'singleGossip',
-				  //preflightCommitment: 'singleGossip',  
+				 // preflightCommitment: 'singleGossip',  
 				},
 			); 
 			console.log("redeem tx complete:",tx);
@@ -442,7 +452,7 @@ WagerClient.prototype.setupContract = function(returnIx = false){
 		}
 		//Create Contract Account for the Program
 		let contractAccount = new Account();
-		this.cachedAccount = contractAccount;
+		this.contractAccount = contractAccount;
 		let createAccIx3 = SystemProgram.createAccount({
 		  fromPubkey: this.feePayer.publicKey,
 		  newAccountPubkey: contractAccount.publicKey,
@@ -519,8 +529,8 @@ WagerClient.prototype.sleep = function(t){ return new Promise(async(resolve,reje
 
 WagerClient.prototype.viewContractData = function(contractAccountPublicKey){
 	return new Promise(async(resolve,reject)=>{
-		if(!contractAccountPublicKey && this.cachedAccount){
-			contractAccountPublicKey = this.cachedAccount.publicKey;
+		if(!contractAccountPublicKey && this.contractAccount){
+			contractAccountPublicKey = this.contractAccount.publicKey;
 		}
 		else if(!contractAccountPublicKey){
 			return resolve({});
