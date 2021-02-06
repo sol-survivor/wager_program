@@ -233,8 +233,13 @@ WagerClient.prototype.getFeePayerWagerTokenAccount = function(returnIx = false){
 	})
 };
 
-WagerClient.prototype.mintPx= function(contractAccountPublicKey,mintAccountxPublicKey,payerWagerTokenAccount,contractWagerTokenAccount,wagerMint,amount,returnIx = false){
+WagerClient.prototype.mintPx= function(position,amount,returnIx = false){
 	return new Promise(async(resolve,reject)=>{	
+		let contractAccountPublicKey = this.contractAccount.publicKey ? this.contractAccount.publicKey : this.contractAccount;
+		let mintAccountxPublicKey = this.mintAccounts[position-1].publicKey ? this.mintAccounts[position-1].publicKey : this.mintAccounts[position-1];
+		let [ payerWagerTokenAccount ] = await this.getFeePayerWagerTokenAccount();
+		let contractWagerTokenAccount = this.contractPotAccount.publicKey ? this.contractPotAccount.publicKey : this.contractPotAccount;
+		let wagerMint = this.potMint.publicKey ? this.potMint.publicKey : this.potMint;
 		//Create Mint Account For the User
 		let [contractAuthority,seed] = await getContractAuth(false,this.programId);			
 		let associatedTokenAccountPublicKey = await findAssociatedTokenAccountPublicKey(this.feePayer.publicKey,mintAccountxPublicKey);	
@@ -384,9 +389,8 @@ WagerClient.prototype.redeemContract = function (position,returnIx = false){
 				redeem,
 				[this.feePayer],
 				{
-					skipPreflight:true,
 				  commitment: 'singleGossip',
-				 // preflightCommitment: 'singleGossip',  
+				  preflightCommitment: 'singleGossip',  
 				},
 			); 
 			console.log("redeem tx complete:",tx);

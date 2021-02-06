@@ -29,7 +29,7 @@ async function main() {
 	//mint position 1
 	let Amount = 8;
 	let [ payerWagerTokenAccount,exists,creationIx ] = await wc.getFeePayerWagerTokenAccount();
-	await wc.mintPx(contractAccount.publicKey,mintAccount1.publicKey,payerWagerTokenAccount,contractWagerTokenAccount,wagerTokenMint,Amount);
+	await wc.mintPx(1,Amount);
 	
 	//close contract
 	let waitTime = Math.ceil(wc.endTime - (new Date().getTime()/1000 - startTime) + 1);
