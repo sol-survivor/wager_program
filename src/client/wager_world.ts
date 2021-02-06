@@ -86,7 +86,7 @@ export async function establishPayer(): Promise<void> {
     );
 
     // Calculate the cost of sending the transactions
-    fees += feeCalculator.lamportsPerSignature * 100; // wag
+    fees += feeCalculator.lamportsPerSignature * 9900000; // wag
 
     // Fund a new payer via airdrop
     payerAccount = await newAccountWithLamports(connection, fees);
@@ -199,13 +199,15 @@ async function getProgramAuthority(buf:any):Promise<[any,any]>{
 }
 
 //Seperate Wager Token
-export async function createWagerMint(): Promise<[PublicKey,PublicKey,PublicKey]> {
+export async function createWagerMint(): Promise<[PublicKey,PublicKey]> {
 	let mintAccount = new Account();
 	let dummyTokenAccount  = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 	let payerWagerTokenAccount = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 	let tokenProgram = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 	let [contractSigner,seed] = await getProgramAuthority(false);
-	console.log("Wager Mint:",mintAccount.publicKey.toBase58(),"WagerAuthority:",payerAccount.publicKey);	
+	console.log("Wager Mint:",mintAccount.publicKey.toBase58(),"WagerAuthority:",payerAccount.publicKey.toBase58());	
+	let balance = await connection.getBalance(payerAccount.publicKey);
+	console.log(balance);
 	let decimals = 6;		
 	try{
 		//Create Mint
@@ -216,6 +218,7 @@ export async function createWagerMint(): Promise<[PublicKey,PublicKey,PublicKey]
 			  space: 82,
 			  programId: tokenProgram
 		});
+
 		let initMintIx = Token.createInitMintInstruction(
 			tokenProgram,
 			mintAccount.publicKey,
@@ -233,6 +236,7 @@ export async function createWagerMint(): Promise<[PublicKey,PublicKey,PublicKey]
 			  preflightCommitment: 'singleGossip',
 			},
 		  );	  
+	  console.log("Mint initialized:",tx);
 	  //Create associated program address for payer
 	  payerWagerTokenAccount = await findAssociatedTokenAccountPublicKey(payerAccount.publicKey,mintAccount.publicKey);
 	  const assocIx = createIx(
@@ -251,7 +255,6 @@ export async function createWagerMint(): Promise<[PublicKey,PublicKey,PublicKey]
 			},
 		  );
 		 console.log("Wager Payer Token Account:",payerWagerTokenAccount.toBase58());
-		 console.log("tokenProgram",tokenProgram);
 		 ////Mint tokens to payer account
 		 let amount = 50;
 		 let amount64 = new Numberu64(amount * Math.pow(10,6)).toBuffer();
@@ -274,54 +277,16 @@ export async function createWagerMint(): Promise<[PublicKey,PublicKey,PublicKey]
 			},
 		  );
 		 console.log("Wager Mint complete",wagerMint);
-
-		 //////////////////////////////////////////////////
-		//Create Wager Token Account Just for the event
-		//
-		let dummyAccount = new Account();
-		dummyTokenAccount = await findAssociatedTokenAccountPublicKey(dummyAccount.publicKey,mintAccount.publicKey);
-		const ewt = createIx(
-		  payerAccount.publicKey,
-		  dummyTokenAccount,
-		  dummyAccount.publicKey,
-		  mintAccount.publicKey
-		);
-		let tx3 = await sendAndConfirmTransaction(
-			connection,
-			new Transaction().add(ewt),
-			[payerAccount],
-			{
-			  commitment: 'singleGossip',
-			  preflightCommitment: 'singleGossip',
-			},
-		  );
-		 console.log("Wager Contract Token Account:",dummyTokenAccount.toBase58());
-		 console.log("transferring control of "+dummyTokenAccount.toBase58()+" to :",contractSigner.toBase58() );
-		 const token = new Token(
-		  connection,
-		  mintAccount.publicKey,
-		  tokenProgram,
-		  payerAccount
-		);
-	 
-		 let tx4 = await token.setAuthority(
-			dummyTokenAccount,
-			contractSigner,
-			"AccountOwner",
-			dummyAccount,
-			[]
-		  );	
-		  console.log("Dummy account transfer ownership to contract:",tx4);	
-		  return [payerWagerTokenAccount,dummyTokenAccount,mintAccount.publicKey]
+		  return [payerWagerTokenAccount,mintAccount.publicKey]
 	}
 	catch(e){
-		console.log(e,"<--- message --->",e.msg);
+		console.error(e);
 	}
-	return [payerWagerTokenAccount,dummyTokenAccount,mintAccount.publicKey]
+	return [payerWagerTokenAccount,mintAccount.publicKey]
 }
 
 export async function getConfig(){
-	let [ pywt,dta,potMint] = await createWagerMint();
+	let [ pywt,potMint] = await createWagerMint();
 	let contractLifeTimeInSeconds = 5;
 	return {
 		connection,

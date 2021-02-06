@@ -423,7 +423,7 @@ WagerClient.prototype.setupContract = function(returnIx = false){
 			this.decimals,
 			contractAuthority,
 			null
-		);			
+		);	
 		let createMintsIx = new Transaction().add(createMint1).add(initMintIx1).add(createMint2).add(initMintIx2);
 		let accounts = [ this.feePayer ];
 		accounts = accounts.concat(this.mintAccounts);
@@ -438,7 +438,7 @@ WagerClient.prototype.setupContract = function(returnIx = false){
 				  preflightCommitment: 'singleGossip',
 				},
 			  );
-			console.log("Mints Created:",tx);
+			console.log("Mints Initialized:",tx);
 		}
 		//Create Contract Account for the Program
 		let contractAccount = new Account();
