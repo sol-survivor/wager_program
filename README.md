@@ -138,9 +138,9 @@ await wc.mintPx(contractAccount.publicKey,mintAccount1.publicKey,payerWagerToken
 await wc.closeContract(oracleAccount.publicKey);
 ```
 
-#### Redeeming tokens from the Pot
+#### Redeeming tokens from the Pot when the winner is from position 1
 ```
-await wc.redeemContract(contractAccount.publicKey,wc.mintAccounts[0].publicKey,payerWagerTokenAccount,contractWagerTokenAccount,wagerTokenMint,Amount);
+await wc.redeemContract(1);
 
 ```
 
