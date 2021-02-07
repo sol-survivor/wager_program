@@ -10,6 +10,8 @@ import {
   Token,
   TOKEN_PROGRAM_ID
 } from "@solana/spl-token";
+import bs58 from 'bs58';
+
 const { Numberu64 } = require("@solana/spl-token-swap");
 
 const SPL_ASSOCIATED_TOKEN_ACCOUNT_PROGRAM_ID = new PublicKey("ATokenGPvbdGVxr1b2hvZbsiqW5xWH25efTNsLJA8knL");
@@ -97,7 +99,7 @@ function createIx( funderPubkey,associatedTokenAccountPublicKey,ownerPublicKey,t
 function WagerClient(config){
 	this.connection = config.connection;
 	//Contract end time (from unix epoch)
-	this.contractAccount = config.cachedAccount;
+	this.contractAccount = config.contractAccount;
 	this.contractPotAccount = null;
 	this.endTime = config.endTime;
 	this.fee = config.fee;
@@ -330,6 +332,37 @@ WagerClient.prototype.mintPx= function(position,amount,returnIx = false){
 	});
 }
 
+function stringToBytes(s){return Buffer.from(s)}
+
+WagerClient.prototype.recreateContract = function(){
+	return new Promise(async(resolve,reject)=>{
+		let data = await this.viewContractData();
+		this.mintAccounts = [
+			new PublicKey( bs58.encode(data.TokenMint1) ),
+			new PublicKey( bs58.encode(data.TokenMint2) )
+		]
+		this.feeAccount = new PublicKey( bs58.encode(data.FeeAccount) );
+		this.oracleAccount = new PublicKey( bs58.encode(data.OracleAccount) );			
+		this.contractPotAccount = new PublicKey( bs58.encode(data.PotTokenAccount) );
+		this.endTime = data.EndTime;	
+		this.override = data.OverRideTime[0];
+		this.outcome = data.Outcome[0];
+		this.fee = get64Value( data.Fee.reverse() );
+		this.minimumBet = get64Value( data.MinimumBet.reverse() );
+		let p1 =  await this.connection.getAccountInfo(this.mintAccounts[0]); 
+		let p2 =  await this.connection.getAccountInfo(this.mintAccounts[1]);
+		this.positions = [0,0]
+		if(p1 && p1.data){
+			this.positions[0] = get64Value( p1.data.slice(36,44).reverse() );
+		}
+		if(p2 && p2.data){
+			this.positions[1] = get64Value( p2.data.slice(36,44).reverse() );
+		}
+		resolve(true);
+	});
+}
+
+
 WagerClient.prototype.redeemContract = function (position,returnIx = false){
 	return new Promise(async(resolve,reject)=>{
 		let contractAccount = this.contractAccount.publicKey ? this.contractAccount.publicKey : this.contractAccount;
@@ -404,6 +437,7 @@ WagerClient.prototype.setupContract = function(returnIx = false){
 	return new Promise(async(resolve,reject)=>{
 		console.log("setting up contract");
 		//setup mints for each position
+		let oracleAccount = this.oracleAccount.publicKey ? this.oracleAccount.publicKey : this.oracleAccount;
 		let decimals = 6;
 		let IxToReturn = [];
 		this.mintAccounts = [ new Account() , new Account() ];
@@ -489,7 +523,7 @@ WagerClient.prototype.setupContract = function(returnIx = false){
 		let fee = new Numberu64( this.fee ).toBuffer();
 		//Override value should be the value of the seed used by the calling program to sign the transaction
 		if(this.override > 0 ){
-			let [oracleAccountAuthority,overrideSeed] = await getContractAuth(false,this.oracleAccount);
+			let [oracleAccountAuthority,overrideSeed] = await getContractAuth(false,oracleAccount);
 			this.oracleAccount = oracleAccountAuthority;
 			this.override = overrideSeed[0];
 		}
@@ -500,7 +534,7 @@ WagerClient.prototype.setupContract = function(returnIx = false){
 				{pubkey: this.mintAccounts[0].publicKey, isSigner:false, isWritable:false},
 				{pubkey: this.mintAccounts[1].publicKey, isSigner:false, isWritable:false },
 				{pubkey: contractPotAccount , isSigner:false, isWritable:false},	
-				{pubkey: this.oracleAccount.publicKey, isSigner:false, isWritable:false},
+				{pubkey: oracleAccount, isSigner:false, isWritable:false},
 				{pubkey: this.feeAccount, isSigner:false, isWritable:true}
 			],
 			programId:this.programId,
@@ -535,7 +569,7 @@ WagerClient.prototype.sleep = function(t){ return new Promise(async(resolve,reje
 WagerClient.prototype.viewContractData = function(contractAccountPublicKey){
 	return new Promise(async(resolve,reject)=>{
 		if(!contractAccountPublicKey && this.contractAccount){
-			contractAccountPublicKey = this.contractAccount.publicKey;
+			contractAccountPublicKey = this.contractAccount.publicKey ? this.contractAccount.publicKey : this.contractAccount;
 		}
 		else if(!contractAccountPublicKey){
 			return resolve({});
