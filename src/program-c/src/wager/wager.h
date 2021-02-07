@@ -30,12 +30,6 @@ typedef struct {
     uint64_t amount;
 } TokenAccount;
 
-typedef struct {
-    uint8_t array[32];
-    uint64_t time;
-} ClockData;
-
-
 //helpers
 uint64_t LEbytesto64(uint8_t *arr){
 	uint64_t number64 = (uint64_t)(
@@ -78,10 +72,19 @@ SolPubkey programSigner(SolParameters *params,uint8_t seed){
 
 uint64_t getTime(SolParameters *params){
 	SolAccountInfo *Clock = &params->ka[1];
-	ClockData *clockData = (ClockData *)Clock->data;
-	sol_log("direct time");
-	return clockData->time;
-}
+	int offset = 32;
+	uint64_t time = (uint64_t)(
+			(unsigned long)(Clock->data[ offset + 0]) << 56 |
+            (unsigned long)(Clock->data[ offset + 1]) << 48 |
+            (unsigned long)(Clock->data[ offset + 2]) << 40 |
+            (unsigned long)(Clock->data[ offset + 3]) << 32 |
+			(unsigned long)(Clock->data[ offset + 4]) << 24 |
+            (unsigned long)(Clock->data[ offset + 5]) << 16 |
+            (unsigned long)(Clock->data[ offset + 6]) << 8 |
+            (unsigned long)(Clock->data[ offset + 7])
+     );	
+     return time;
+ }
 
 //Validators
 
@@ -318,7 +321,7 @@ bool ValidTime(SolParameters *params){
 	Contract *contract = (Contract *)Account->data;	
 	bool valid = false;
 	uint64_t now = getTime(params);
-	//sol_log_64(now,contract->endTime,contract->endTime-now,0,0);
+	sol_log_64(now,contract->endTime,contract->endTime-now,0,0);
 	if(now < contract->endTime && contract->outcome == 0){
 		valid = true;
 	}
@@ -611,7 +614,7 @@ uint64_t setOutcome(SolParameters *params){
 		if ( !Pending(params) ) { return ERROR_INVALID_ACCOUNT_DATA; } 	
 		if( !FinalizeContract(params) ){return ERROR_INVALID_ACCOUNT_DATA;}
 	}
-	else if(CanOverRide(params)){
+	else if(CanOverRide(params) > 0){
 		sol_log("time override");
 		if ( !Pending(params) ) { return ERROR_INVALID_ACCOUNT_DATA; } 	
 		if( !FinalizeContract(params) ){return ERROR_INVALID_ACCOUNT_DATA;}

@@ -32,7 +32,7 @@ async function main() {
 	await wc.mintPx(1,Amount);
 	
 	//close contract
-	let waitTime = Math.ceil(wc.endTime - (new Date().getTime()/1000 - startTime) + 1);
+	let waitTime = Math.ceil(wc.endTime - (new Date().getTime()/1000 - startTime));
 	console.log("waiting ",waitTime,"s to close contract");
 	await wc.sleep( waitTime  );
 	await wc.closeContract(1);
