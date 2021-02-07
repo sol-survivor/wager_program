@@ -30,6 +30,11 @@ typedef struct {
     uint64_t amount;
 } TokenAccount;
 
+typedef struct {
+    uint8_t array[32];
+    uint64_t time;
+} ClockData;
+
 
 //helpers
 uint64_t LEbytesto64(uint8_t *arr){
@@ -73,18 +78,9 @@ SolPubkey programSigner(SolParameters *params,uint8_t seed){
 
 uint64_t getTime(SolParameters *params){
 	SolAccountInfo *Clock = &params->ka[1];
-	int offset = 32;
-	uint64_t time = (uint64_t)(
-			(unsigned long)(Clock->data[ offset + 0]) << 56 |
-            (unsigned long)(Clock->data[ offset + 1]) << 48 |
-            (unsigned long)(Clock->data[ offset + 2]) << 40 |
-            (unsigned long)(Clock->data[ offset + 3]) << 32 |
-			(unsigned long)(Clock->data[ offset + 4]) << 24 |
-            (unsigned long)(Clock->data[ offset + 5]) << 16 |
-            (unsigned long)(Clock->data[ offset + 6]) << 8 |
-            (unsigned long)(Clock->data[ offset + 7])
-     );	
-     return time;
+	ClockData *clockData = (ClockData *)Clock->data;
+	sol_log("direct time");
+	return clockData->time;
 }
 
 //Validators
@@ -610,7 +606,13 @@ uint64_t setOutcome(SolParameters *params){
 	if( !isOwner(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }
 	if( !ValidClock(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }	
 	if( !ValidOracle(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }
-	if( !ValidTime(params) || CanOverRide(params) ){ 
+	if( !ValidTime(params) ){ 
+		sol_log("time over");
+		if ( !Pending(params) ) { return ERROR_INVALID_ACCOUNT_DATA; } 	
+		if( !FinalizeContract(params) ){return ERROR_INVALID_ACCOUNT_DATA;}
+	}
+	else if(CanOverRide(params)){
+		sol_log("time override");
 		if ( !Pending(params) ) { return ERROR_INVALID_ACCOUNT_DATA; } 	
 		if( !FinalizeContract(params) ){return ERROR_INVALID_ACCOUNT_DATA;}
 	}
