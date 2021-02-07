@@ -610,9 +610,13 @@ uint64_t setOutcome(SolParameters *params){
 	if( !isOwner(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }
 	if( !ValidClock(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }	
 	if( !ValidOracle(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }
-	if( ValidTime(params) && !CanOverRide(params) ){ return ERROR_INVALID_ACCOUNT_DATA; }
-	if ( !Pending(params) ) { return ERROR_INVALID_ACCOUNT_DATA; } 	
-	if( !FinalizeContract(params) ){return ERROR_INVALID_ACCOUNT_DATA;}
+	if( !ValidTime(params) || CanOverRide(params) ){ 
+		if ( !Pending(params) ) { return ERROR_INVALID_ACCOUNT_DATA; } 	
+		if( !FinalizeContract(params) ){return ERROR_INVALID_ACCOUNT_DATA;}
+	}
+	else{
+		return ERROR_INVALID_ACCOUNT_DATA;
+	}
 	return SUCCESS;
 }
 
