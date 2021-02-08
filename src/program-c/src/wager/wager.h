@@ -508,13 +508,13 @@ bool Transfer2User(SolParameters *params){
     uint64_t burnAmount64 =	userMintTokenAccount->amount;
     uint64_t potAmount64 = LEbytesto64(potAmount);
     uint64_t mintAmount64 = LEbytesto64(mintAmount);
-    unsigned long winning;
+    unsigned long winning = (unsigned long)( burnAmount64 * potAmount64 / mintAmount64);
     if( contract->outcome > 2 || contract->outcome == 0 ){
 		//draw or wager not accepted
-		winning = (unsigned long) ( burnAmount64 / mintAmount64 );
+		winning /= 2;
 	}
 	else{
-		winning = (unsigned long)( burnAmount64 * potAmount64 / mintAmount64);
+		
 	}
 	//sol_log_64(burnAmount64,potAmount64,mintAmount64,winning,0);
 	uint8_t transferData[] = { 3,0,0,0,0,0,0,0,0 };
@@ -553,10 +553,11 @@ bool Mint2User(SolParameters *params) {
     };
     uint8_t userBet_[] = { params->data[2], params->data[3], params->data[4],params->data[5], params->data[6], params->data[7], params->data[8], params->data[9]};
     uint64_t userBet = LEbytesto64(userBet_);
+    uint64_t base = 1000000;
     if(userBet < contract->minimumBet){
 		return false;
 	}
-	userBet = ( userBet / contract->minimumBet ) * 1000000;
+	userBet = ( userBet / contract->minimumBet ) * base;
     uint8_t transferData[] = { 7,0,0,0,0,0,0,0,0 };
     BE64toBytes(1,transferData,userBet); 
 	const SolInstruction mintPxInstruction = {
@@ -641,4 +642,5 @@ uint64_t redeem(SolParameters *params){
 }
 
 //TO DO
+//Allow full draw withdrawl?
 //Withdraw Timeout Limit?
