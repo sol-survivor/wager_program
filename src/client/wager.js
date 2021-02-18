@@ -201,6 +201,21 @@ WagerClient.prototype.findAssociatedTokenAccountPublicKey = function(pk,mint){
 
 WagerClient.prototype.getContractAuth = function(buf,programId){ return new Promise(async(resolve,reject)=>{ return resolve(getContractAuth(buf,programId)); }); };
 
+WagerClient.prototype.getBalance = function(publicKey){ 
+	return new Promise(async(resolve,reject)=>{ 
+			let balance = 0;
+			let info;
+			try{
+				info = await this.connection.getAccountInfo(publicKey);
+				balance = get64Value(info.data.slice(64,72).reverse());
+			 }
+			 catch(e){
+				console.log(e);
+			}
+			return resolve ( balance );
+	}); 
+};
+
 WagerClient.prototype.getFeePayerWagerTokenAccount = function(returnIx = false){
 	return new Promise(async(resolve,reject)=>{
 		let associatedAccount = await findAssociatedTokenAccountPublicKey(this.feePayer.publicKey,this.potMint);
@@ -418,16 +433,22 @@ WagerClient.prototype.redeemContract = function (position,returnIx = false){
 		redeemIxs.push(instruction);
 		if(!returnIx){
 			var redeem =  new Transaction().add(instruction);	
-			let tx = await sendAndConfirmTransaction(
-				this.connection,
-				redeem,
-				[this.feePayer],
-				{
-				  commitment: 'singleGossip',
-				  preflightCommitment: 'singleGossip',  
-				},
-			); 
-			console.log("redeem tx complete:",tx);
+			let tx;
+			try{
+				await sendAndConfirmTransaction(
+					this.connection,
+					redeem,
+					[this.feePayer],
+					{
+					  commitment: 'singleGossip',
+					  preflightCommitment: 'singleGossip',  
+					},
+				); 
+				console.log("redeem tx complete:",tx);
+			}
+			catch(e){
+				reject(e);
+			}
 		}
 		resolve(redeemIxs)
 	});
