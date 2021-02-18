@@ -70,6 +70,8 @@ $ npm run build:program-c
 
 ```bash
 $ npm run start
+{... console.logs}
+Passed  4 / 4  Tests
 ```
 
 #### Not seeing the expected output?
