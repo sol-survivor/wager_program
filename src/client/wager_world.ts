@@ -291,6 +291,7 @@ export async function getConfig(){
 	return {
 		connection,
 		endTime: contractLifeTimeInSeconds,
+		fee:0,
 		feeAccount:pywt,
 		feePayer:payerAccount,
 		minimumBet:1,

@@ -38,6 +38,7 @@ async function p1Win(){
 	await wc.viewContractData();
 	
 	//redeem
+	console.log('redeeming');
 	await wc.redeemContract(1);
 	await wc.sleep(2);
 	balanceAfterRedemption = await wc.getBalance(payerWagerTokenAccount);
@@ -131,7 +132,7 @@ async function drawRedemption(){
 	balanceAfterRedemption = await wc.getBalance(payerWagerTokenAccount);
 
 	//result
-	if(balanceBeforeMint > balanceAfterRedemption && balanceAfterMint === (balanceBeforeMint - (Amount * Math.pow(10,6))) ){
+	if(balanceBeforeMint === balanceAfterRedemption && balanceAfterMint === (balanceBeforeMint - (Amount * Math.pow(10,6))) ){
 		pass = true;
 	}
 	console.log("P1 Balance History:",balanceBeforeMint,"-->",balanceAfterMint,"-->",balanceAfterRedemption);
@@ -173,7 +174,7 @@ async function timeoutRedemption(){
 	balanceAfterRedemption = await wc.getBalance(payerWagerTokenAccount);
 
 	//result
-	if(balanceBeforeMint > balanceAfterRedemption && balanceAfterMint === (balanceBeforeMint - (Amount * Math.pow(10,6))) ){
+	if(balanceBeforeMint === balanceAfterRedemption && balanceAfterMint === (balanceBeforeMint - (Amount * Math.pow(10,6))) ){
 		pass = true;
 	}
 	console.log("P1 Balance History:",balanceBeforeMint,"-->",balanceAfterMint,"-->",balanceAfterRedemption);
