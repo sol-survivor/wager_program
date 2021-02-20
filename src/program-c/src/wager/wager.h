@@ -4,7 +4,7 @@
 //Structures
 typedef struct {
 	uint8_t slots[32]; /** initialized 0*/
-	uint64_t timestamp; /** unix timestamp 32*/
+	uint8_t timestamp[8]; /** unix timestamp 32*/
 } ClockInfo;
 
 typedef struct {
@@ -93,7 +93,9 @@ SolPubkey programSigner(SolParameters *params, uint8_t seed) {
 uint64_t getTime(SolParameters *params) {
 	SolAccountInfo *Clock = &params->ka[1];
 	ClockInfo *clockInfo = (ClockInfo *)Clock->data;
-	return clockInfo->timestamp;
+	uint64_t now = LEbytesto64(clockInfo->timestamp);
+	sol_log_64(now,0,0,0,0);
+	return now;
 }
 
 //Validators

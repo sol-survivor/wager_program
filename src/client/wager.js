@@ -619,7 +619,7 @@ WagerClient.prototype.viewContractData = function(contractAccountPublicKey){
 			console.log(field[i]);
 			console.log(Buffer.from(d).toString("hex"));
 			if(d.length == 8 && i === 0){
-				dataStructure[field[i]] = get64BitTime(d.reverse()).getTime();
+				dataStructure[field[i]] = get64BitTime(d).getTime();
 				console.log(dataStructure[field[i]])
 				return;
 			}
