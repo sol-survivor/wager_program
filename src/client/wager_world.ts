@@ -37,7 +37,7 @@ let connection: Connection;
  * Connection to the network
  */
 let payerAccount: Account;
-
+let players: Account[];
 /**
  * Wager program id
  */
@@ -90,6 +90,10 @@ export async function establishPayer(): Promise<void> {
 
     // Fund a new payer via airdrop
     payerAccount = await newAccountWithLamports(connection, fees);
+    players = [];
+    for(let i = 0;i < 7;i++){
+		players.push(await newAccountWithLamports(connection, fees));
+	}
   }
 
   const lamports = await connection.getBalance(payerAccount.publicKey);
@@ -199,7 +203,7 @@ async function getProgramAuthority(buf:any):Promise<[any,any]>{
 }
 
 //Seperate Wager Token
-export async function createWagerMint(): Promise<[PublicKey,PublicKey]> {
+export async function createWagerMint(multiparty:boolean): Promise<[PublicKey,PublicKey]> {
 	let mintAccount = new Account();
 	let dummyTokenAccount  = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 	let payerWagerTokenAccount = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
@@ -255,9 +259,10 @@ export async function createWagerMint(): Promise<[PublicKey,PublicKey]> {
 			},
 		  );
 		 console.log("Wager Payer Token Account:",payerWagerTokenAccount.toBase58());
-		 ////Mint tokens to payer account
+		 ////Mint tokens to player account
 		 let amount = 50;
 		 let amount64 = new Numberu64(amount * Math.pow(10,6)).toBuffer();
+		 let doubleAmount64 = new Numberu64(amount*2 * Math.pow(10,6)).toBuffer();		 
 		 let minttoix = new TransactionInstruction({
 			keys: [
 				{pubkey:mintAccount.publicKey, isSigner: false, isWritable:true},
@@ -267,9 +272,44 @@ export async function createWagerMint(): Promise<[PublicKey,PublicKey]> {
 			programId:tokenProgram,
 			data: Buffer.concat ([Buffer.from([7]), amount64,seed ])
 		});
+		//additional players
+		let transaction = new Transaction();
+		let pwta;
+		let createPWTA;
+		if(multiparty){
+			for (let i = 0;i < players.length;i++){
+				pwta = await findAssociatedTokenAccountPublicKey(players[i].publicKey,mintAccount.publicKey);
+				createPWTA = createIx(
+				  players[i].publicKey,
+				  pwta,
+				  players[i].publicKey,
+				  mintAccount.publicKey
+				);
+				await sendAndConfirmTransaction(
+					connection,
+					new Transaction().add(createPWTA),
+					[players[i]],
+					{
+					  commitment: 'singleGossip',
+					  preflightCommitment: 'singleGossip',
+					},
+				  );
+				transaction.add(new TransactionInstruction({
+						keys: [
+						{pubkey:mintAccount.publicKey, isSigner: false, isWritable:true},
+						{pubkey:pwta, isSigner:false, isWritable:true},			
+						{pubkey:payerAccount.publicKey, isSigner:true, isWritable:false},
+					],
+					programId:tokenProgram,
+					data: Buffer.concat ([Buffer.from([7]), doubleAmount64,seed ])
+				}));
+			}
+		}
+		///////////
+		transaction.add(minttoix);
 		let wagerMint = await sendAndConfirmTransaction(
 			connection,
-			new Transaction().add(minttoix),
+			transaction,
 			[payerAccount],
 			{
 			  commitment: 'singleGossip',
@@ -285,8 +325,8 @@ export async function createWagerMint(): Promise<[PublicKey,PublicKey]> {
 	return [payerWagerTokenAccount,mintAccount.publicKey]
 }
 
-export async function getConfig(){
-	let [ pywt,potMint] = await createWagerMint();
+export async function getConfig(multiparty:boolean){
+	let [ pywt,potMint] = await createWagerMint(multiparty);
 	let contractLifeTimeInSeconds = 5;
 	return {
 		connection,
@@ -300,4 +340,8 @@ export async function getConfig(){
 		potMint,
 		programId,
 	}
+}
+
+export function getPlayers():Account[]{
+	return players
 }
